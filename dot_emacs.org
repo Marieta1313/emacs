@@ -1,0 +1,1182 @@
+#+STARTUP: overview
+* repos
+Define special repository needs; calling script establishes basic ones
+#+BEGIN_SRC emacs-lisp
+(message "in repos section")
+#+END_SRC
+
+#+RESULTS:
+: in repos section
+* interface and globals tweaks: global keys and shell established, etc.
+SCHEDULED: <2022-02-07 Mon>
+:PROPERTIES:
+:ORDERED:  t
+:END:
+
+#+BEGIN_SRC emacs-lisp
+  (message "in interface, keyboard and globals tweaks section")
+  (setenv "BROWSER" "/Program Files/Mozilla Firefox/firefox.exe")
+  (setq inhibit-startup-message t)
+  (tool-bar-mode -1)
+  (fset 'yes-or-no-p 'y-or-n-p)
+  (global-set-key (kbd "<f1>")  'shell)
+  (global-set-key (kbd "<f5>")  'revert-buffer)
+  (global-set-key (kbd "<f12>") 'tomatinho)
+  (global-set-key "\C-cs" 'my-org-screenshot)
+  (global-set-key (kbd "C-x w") 'elfeed)
+
+  (setenv "PS1" '"\\w\\$ ")
+
+#+END_SRC
+
+#+RESULTS:
+: \w\$ 
+
+* all-the-icons
+#+BEGIN_SRC emacs-lisp
+(message "in all the icons section")
+(use-package all-the-icons 
+:ensure t
+:defer 0.5)
+
+(use-package all-the-icons-ivy
+:ensure t
+  :after (all-the-icons ivy)
+  :custom (all-the-icons-ivy-buffer-commands '(ivy-switch-buffer-other-window ivy-switch-buffer))
+  :config
+  (add-to-list 'all-the-icons-ivy-file-commands 'counsel-dired-jump)
+  (add-to-list 'all-the-icons-ivy-file-commands 'counsel-find-library)
+  (all-the-icons-ivy-setup))
+
+(use-package all-the-icons-dired
+:ensure t
+)
+
+(add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+
+#+END_SRC
+
+#+RESULTS:
+| diredp-nb-marked-in-mode-name | diredp--set-up-font-locking | dired-extra-startup | doom-modeline-set-project-modeline | all-the-icons-dired-mode |
+* utf-8 (if needed?)
+;; BEGIN: Set UTF-8 as default
+#+BEGIN_SRC emacs-lisp
+(message "in utf-8 section")
+(prefer-coding-system 'utf-8)
+(set-default-coding-systems 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+#+END_SRC
+
+#+RESULTS:
+: utf-8
+
+;; END: Set UTF-8 as default
+* backups
+;; Save backups (~files) to ~/.emacs.d/backups
+#+BEGIN_SRC emacs-lisp
+(message "in backups section")
+;; Save backups (~files) to ~/.emacs.d/backups
+(setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+#+END_SRC
+
+* try
+#+BEGIN_SRC emacs-lisp
+(message "in try section")
+(use-package try
+	:ensure t)
+#+END_SRC
+
+* posframe
+#+BEGIN_SRC emacs-lisp
+(message "in posframe section")
+(use-package posframe :ensure t)
+#+END_SRC
+* which key
+Brings up some help
+#+BEGIN_SRC emacs-lisp
+    (message "in which key section")
+    (use-package which-key
+      :ensure t 
+      :config
+      (which-key-mode))
+
+#+END_SRC
+
+* Google search launch from within emacs
+
+#+BEGIN_SRC emacs-lisp
+;; -*- lexical-binding: t -*-
+;;
+;; google integration
+
+(message "in google search section")
+(defun google ()
+  "Googles a query or region if any."
+  (interactive)
+  (browse-url
+   (concat
+    "http://www.google.com/search?ie=utf-8&oe=utf-8&q="
+    (if mark-active
+        (buffer-substring (region-beginning) (region-end))
+      (read-string "Google: ")))))
+
+#+END_SRC
+
+* Org mode
+
+Primary ORG config
+  #+BEGIN_SRC emacs-lisp
+    (message "in org mode section")
+    (use-package org 
+      :ensure t)
+
+
+    (setenv "BROWSER" "/Program Files/Mozilla Firefox/firefox.exe")
+
+    (use-package org-bullets
+      :ensure t
+      :config
+      (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+    
+    (custom-set-variables
+     '(org-directory "~/Sync/orgfiles")
+     '(org-default-notes-file (concat org-directory "/notes.org"))
+     '(org-export-html-postamble nil)
+     '(org-hide-leading-stars t)
+     '(org-startup-folded (quote overview))
+     '(org-startup-indented t)
+     '(org-confirm-babel-evaluate nil)
+     '(org-src-fontify-natively t))
+
+    (setq org-file-apps
+          (append '(
+                    ("\\.pdf\\'" . "evince %s")
+                    ("\\.x?html?\\'" . "/Program Files/Mozilla Firefox %s")
+                    ) org-file-apps ))
+
+    (global-set-key "\C-ca" 'org-agenda)
+    (setq org-agenda-start-on-weekday nil)
+    (setq org-agenda-custom-commands
+          '(("c" "Simple agenda view"
+             ((agenda "")
+              (alltodo "")))))
+
+
+    (global-set-key (kbd "C-c c") 'org-capture)
+
+    (setq org-agenda-files (list "~/Sync/orgfiles/gcal.org"
+                                 "~/Sync/orgfiles/i.org"
+                                 "~/Sync/orgfiles/schedule.org"))
+    (setq org-capture-templates
+          '(("a" "Appointment" entry (file  "~/Sync/orgfiles/gcal.org" )
+             "* %?\n\n%^T\n\n:PROPERTIES:\n\n:END:\n\n")
+            ("l" "Link" entry (file+headline "~/Sync/orgfiles/links.org" "Links")
+             "* %? %^L %^g \n%T" :prepend t)
+            ("i" "" entry (file+headline "~/Sync/orgfiles/i.org" "Ideas")
+             "* %?\n%T" :prepend t)
+            ("t" "To Do Item" entry (file+headline "~/Sync/orgfiles/i.org" "To Do and Notes")
+             "* TODO %?\n%u" :prepend t)
+            ("m" "Mail To Do" entry (file+headline "~/Sync/orgfiles/i.org" "To Do and Notes")
+             "* TODO %a\n %?" :prepend t)
+            ("g" "GMail To Do" entry (file+headline "~/Sync/orgfiles/i.org" "To Do and Notes")
+             "* TODO %^L\n %?" :prepend t)
+            ("n" "Note" entry (file+headline "~/Sync/orgfiles/i.org" "Notes")
+             "* %u %? " :prepend t)
+            ))
+  
+
+    (defadvice org-capture-finalize 
+        (after delete-capture-frame activate)  
+      "Advise capture-finalize to close the frame"  
+      (if (equal "capture" (frame-parameter nil 'name))  
+          (delete-frame)))
+
+    (defadvice org-capture-destroy 
+        (after delete-capture-frame activate)  
+      "Advise capture-destroy to close the frame"  
+      (if (equal "capture" (frame-parameter nil 'name))  
+          (delete-frame)))  
+
+    (use-package noflet
+      :ensure t )
+    (defun make-capture-frame ()
+      "Create a new frame and run org-capture."
+      (interactive)
+      (make-frame '((name . "capture")))
+      (select-frame-by-name "capture")
+      (delete-other-windows)
+      (noflet ((switch-to-buffer-other-window (buf) (switch-to-buffer buf)))
+        (org-capture)))
+;; (require 'ox-beamer)
+;; for inserting inactive dates
+    (message "in org mode section: secondary config")
+    (define-key org-mode-map (kbd "C-c >") (lambda () (interactive (org-time-stamp-inactive))))
+
+    (use-package htmlize :ensure t)
+
+;; Modify ORG Mode empahsis list(bold, italic, underline, verbatim, etc) to allow
+;; multiline spanning of emphasis: Below,the 4th slot in the org-emphasis-regexp-components
+;; list is set to allow emphasis to go up to 10 lines
+(setcar (nthcdr 4 org-emphasis-regexp-components) 10)
+(org-set-emph-re 'org-emphasis-regexp-components org-emphasis-regexp-components)
+
+;; java diagram converter
+;;    (setq org-ditaa-jar-path "/usr/share/ditaa/ditaa.jar")
+
+  #+END_SRC
+
+  #+RESULTS:
+  : \([-[:space:]('"{]\|^\)\(\([=~]\)\([^[:space:]]\|[^[:space:]].*?\(?:
+  : .*?\)\{0,10\}[^[:space:]]\)\3\)\([-[:space:].,:!?;'")}\[]\|$\)
+
+;; Secondary ORG config: screenshot capture in org, multiple techniques
+ #+BEGIN_SRC  emacs-lisp
+ ;; Enable screenshot capture in org docs 
+(use-package org-attach-screenshot
+      :ensure t )  
+;;directory for png for screenshot
+(setq org-attach-screenshot-dirfunction
+		(lambda () 
+		  (progn (assert (buffer-file-name))
+			 (concat (file-name-sans-extension (buffer-file-name))
+				 "_att"))))
+(defun my-org-screenshot ()
+  "Take a screenshot into a time stamped unique-named file in the
+   same directory as the org-buffer and insert a link to this file."  
+   (interactive)
+   (setq filename
+     (concat
+       (make-temp-name
+         (concat (buffer-file-name)
+              "_"
+              (format-time-string "%Y%m%d_%H%M%S_")) ) ".png"))
+   (shell-command "snippingtool /clip")
+   (shell-command (concat "powershell -command \"Add-Type -AssemblyName System.Windows.Forms;if ($([System.Windows.Forms.Clipboard]::ContainsImage())) {$image = [System.Windows.Forms.Clipboard]::GetImage();[System.Drawing.Bitmap]$image.Save('" filename "',[System.Drawing.Imaging.ImageFormat]::Png); Write-Output 'clipboard content saved as file'} else {Write-Output 'clipboard does not contain image data'}\""))
+   (insert (concat "[[file:" filename "]]"))
+   (org-display-inline-images))
+#+END_SRC
+
+* Ace windows for easy window switching
+  #+BEGIN_SRC emacs-lisp
+  (message "in ace windows section")
+  (use-package ace-window
+  :ensure t
+  :init
+  (progn
+  (setq aw-scope 'global) ;; was frame
+  (global-set-key (kbd "C-x O") 'other-frame)
+    (global-set-key [remap other-window] 'ace-window)
+    (custom-set-faces
+     '(aw-leading-char-face
+       ((t (:inherit ace-jump-face-foreground :height 3.0))))) 
+    ))
+  #+END_SRC
+
+  #+RESULTS:
+
+* Shift rectangle right or left n spaces
+#+BEGIN_SRC emacs-lisp
+(message "in shift rectangle section")
+;; shift text rectangle a specified distance right or left
+(defun shift-text (distance)
+  (if (use-region-p)
+      (let ((mark (mark)))
+        (save-excursion
+          (indent-rigidly (region-beginning)
+                          (region-end)
+                          distance)
+          (push-mark mark t t)
+          (setq deactivate-mark nil)))
+    (indent-rigidly (line-beginning-position)
+                    (line-end-position)
+                    distance)))
+
+(defun shift-right (count)
+  (interactive "p")
+  (shift-text (+ count)))
+
+(defun shift-left (count)
+  (interactive "p")
+  (shift-text (- count)))
+(put 'upcase-region 'disabled nil)
+
+#+END_SRC
+
+#+RESULTS:
+
+* Swiper / Ivy / Counsel
+  Swiper gives us a really efficient incremental search with regular expressions
+  and Ivy / Counsel replace a lot of ido or helms completion functionality
+  #+BEGIN_SRC emacs-lisp
+   (message "in swiper/ivy/counsel section")
+   (use-package counsel
+   :ensure t
+   :bind  (("M-y" . counsel-yank-pop)
+   :map ivy-minibuffer-map
+   ("M-y" . ivy-next-line)))
+
+  (use-package ivy
+  :ensure t
+  :diminish (ivy-mode)
+  :bind (("C-x b" . ivy-switch-buffer))
+  :config
+  (ivy-mode 1)
+  (setq ivy-use-virtual-buffers t)
+  (setq ivy-count-format "%d/%d ")
+  (setq ivy-display-style 'fancy))
+
+
+  (use-package swiper
+  :ensure t
+  :bind (("C-s" . swiper-isearch)
+	 ("C-r" . swiper-isearch)
+	 ("C-c C-r" . ivy-resume)
+	 ("M-x" . counsel-M-x)
+	 ("C-x C-f" . counsel-find-file))
+  :config
+  (progn
+    (ivy-mode 1)
+    (setq ivy-use-virtual-buffers t)
+    (setq ivy-display-style 'fancy)
+    (define-key read-expression-map (kbd "C-r") 'counsel-expression-history)
+    ))
+  #+END_SRC
+
+  #+RESULTS:
+  : counsel-find-file
+
+* Avy - navigate by searching for a letter on the screen and jumping to it
+See https://github.com/abo-abo/avy for more info
+  #+BEGIN_SRC emacs-lisp
+  (message "in avy - navigate section")
+  (use-package avy
+  :ensure t
+  :bind ("M-s" . avy-goto-word-1)) ;; changed from char as per jcs
+  #+END_SRC
+
+  #+RESULTS:
+  : avy-goto-word-1
+
+* Company
+#+BEGIN_SRC emacs-lisp
+  (message "in company section")
+  (use-package company
+  :ensure t
+  :config
+  (setq company-idle-delay 0)
+  (setq company-minimum-prefix-length 3)
+
+  (global-company-mode t)
+  )
+
+  (defun my/python-mode-hook ()
+    (add-to-list 'company-backends 'company-jedi))
+
+  (add-hook 'python-mode-hook 'my/python-mode-hook)
+  (use-package company-jedi
+      :ensure t
+      :config
+      (add-hook 'python-mode-hook 'jedi:setup)
+         )
+
+  (defun my/python-mode-hook ()
+    (add-to-list 'company-backends 'company-jedi))
+
+  (add-hook 'python-mode-hook 'my/python-mode-hook)
+
+  ;; company box mode
+  (use-package company-box
+    :ensure t
+    :hook (company-mode . company-box-mode)) 
+
+
+#+END_SRC
+
+#+RESULTS:
+| company-box-mode | company-mode-set-explicitly |
+* Themes and modeline
+  #+BEGIN_SRC emacs-lisp 
+(message "in themes and modeline section")
+    (use-package color-theme-modern
+      :ensure t)
+ ;;   (use-package zenburn-theme
+ ;;     :ensure t)
+ ;;  (use-package base16-theme
+ ;;     :ensure t)
+ ;;   (use-package moe-theme
+ ;;     :ensure t)
+ ;;   (use-package alect-themes
+ ;;     :ensure t)
+ ;;   (use-package zerodark-theme
+ ;;       :ensure t)
+ ;;   (use-package faff-theme
+ ;;     :ensure t)
+ ;;   (use-package poet-theme
+ ;;     :ensure t)
+ ;;   (use-package tao-theme
+ ;;     :ensure t)
+ ;;   (use-package doom-themes
+ ;;     :ensure t)
+ ;;   (use-package doom-modeline
+ ;;     :ensure t)  
+    (require 'doom-modeline)
+    (doom-modeline-init)
+;;(load-theme 'faff t)
+    (load-theme 'sitaramv-nt t)
+  #+END_SRC
+  
+* Flycheck
+  #+BEGIN_SRC emacs-lisp
+    (message "in flycheck section")
+    (use-package flycheck
+      :ensure t
+      :init
+      (global-flycheck-mode t))
+
+  #+END_SRC
+
+  #+RESULTS:
+
+* Python
+  #+BEGIN_SRC emacs-lisp
+        (message "in python section")
+		
+		(add-to-list 'auto-mode-alist '("\\.py$" . python-mode))
+		
+        (setq py-python-command "python3")
+        (setq python-shell-interpreter "python3")
+ 
+        (use-package elpy
+            :ensure t
+            :custom (elpy-rpc-backend "jedi")
+            :config (elpy-enable))
+
+        (use-package virtualenvwrapper
+          :ensure t
+          :config
+          (venv-initialize-interactive-shells)
+          (venv-initialize-eshell))
+
+  #+END_SRC
+
+  #+RESULTS:
+  : t
+
+* ESS (Emacs Speaks Statistics)
+ #+BEGIN_SRC emacs-lisp
+(message "in ess section")
+(add-to-list 'load-path "/users/joem0/Anaconda3/Lib/R/bin/x64/")
+(setq-default inferior-R-program-name "/users/joem0/Anaconda3/Lib/R/bin/x64/R")
+(add-to-list 'auto-mode-alist '("\\.r$" . R-mode))
+(add-to-list 'auto-mode-alist '("\\.R$" . R-mode))
+ #+END_SRC
+
+#+RESULTS:
+: ((\.odc\' . archive-mode) (\.odf\' . archive-mode) (\.odi\' . archive-mode) (\.otp\' . archive-mode) (\.odp\' . archive-mode) (\.otg\' . archive-mode) (\.odg\' . archive-mode) (\.ots\' . archive-mode) (\.ods\' . archive-mode) (\.odm\' . archive-mode) (\.ott\' . archive-mode) (\.odt\' . archive-mode) (\.org$ . org-mode) (\.whl\' . python-mode) (\.pth\' . python-mode) (\.pyi\' . python-mode) (\.pyr\' . python-mode) (\.pxd\' . python-mode) (\.pyo\' . python-mode) (\.pyx\' . python-mode) (\.pyc\' . python-mode) (\.pym\' . python-mode) (\.py\' . python-mode) (\.beancount$ . beancount-mode) (\.jsx$ . web-mode) (\.js\' . js2-mode) (\.vue?\' . web-mode) (\.html?\' . web-mode) (\.epub\' . nov-mode) (\.R$ . R-mode) (\.r$ . R-mode) (\.py$ . python-mode) (\.gpg\(~\|\.~[0-9]+~\)?\' nil epa-file) (\.hva\' . latex-mode) (\(?:build\|profile\)\.boot\' . clojure-mode) (\.cljs\' . clojurescript-mode) (\.cljc\' . clojurec-mode) (\.\(clj\|dtm\|edn\)\' . clojure-mode) (go\.mod\' . go-dot-mod-mode) (\.go\' . go-mode) (\.hsc\' . haskell-mode) (\.l[gh]s\' . haskell-literate-mode) (\.hsig\' . haskell-mode) (\.[gh]s\' . haskell-mode) (\.cabal\'\|/cabal\.project\|/\.cabal/config\' . haskell-cabal-mode) (\.chs\' . haskell-c2hs-mode) (\.ghci\' . ghci-script-mode) (\.dump-simpl\' . ghc-core-mode) (\.hcr\' . ghc-core-mode) (\.pug\' . jade-mode) (\.jade\' . jade-mode) (\.json\' . json-mode) (/git-rebase-todo\' . git-rebase-mode) (\.\(?:md\|markdown\|mkd\|mdown\|mkdn\|mdwn\)\' . markdown-mode) (\.rs\' . rust-mode) (\.elc\' . elisp-byte-code-mode) (\.zst\' nil jka-compr) (\.dz\' nil jka-compr) (\.xz\' nil jka-compr) (\.lzma\' nil jka-compr) (\.lz\' nil jka-compr) (\.g?z\' nil jka-compr) (\.bz2\' nil jka-compr) (\.Z\' nil jka-compr) (\.vr[hi]?\' . vera-mode) (\(?:\.\(?:rbw?\|ru\|rake\|thor\|jbuilder\|rabl\|gemspec\|podspec\)\|/\(?:Gem\|Rake\|Cap\|Thor\|Puppet\|Berks\|Vagrant\|Guard\|Pod\)file\)\' . ruby-mode) (\.re?st\' . rst-mode) (\.py[iw]?\' . python-mode) (\.m\' . octave-maybe-mode) (\.less\' . less-css-mode) (\.scss\' . scss-mode) (\.awk\' . awk-mode) (\.\(u?lpc\|pike\|pmod\(\.in\)?\)\' . pike-mode) (\.idl\' . idl-mode) (\.java\' . java-mode) (\.m\' . objc-mode) (\.ii\' . c++-mode) (\.i\' . c-mode) (\.lex\' . c-mode) (\.y\(acc\)?\' . c-mode) (\.h\' . c-or-c++-mode) (\.c\' . c-mode) (\.\(CC?\|HH?\)\' . c++-mode) (\.[ch]\(pp\|xx\|\+\+\)\' . c++-mode) (\.\(cc\|hh\)\' . c++-mode) (\.\(bat\|cmd\)\' . bat-mode) (\.[sx]?html?\(\.[a-zA-Z_]+\)?\' . mhtml-mode) (\.svgz?\' . image-mode) (\.svgz?\' . xml-mode) (\.x[bp]m\' . image-mode) (\.x[bp]m\' . c-mode) (\.p[bpgn]m\' . image-mode) (\.tiff?\' . image-mode) (\.gif\' . image-mode) (\.png\' . image-mode) (\.jpe?g\' . image-mode) (\.te?xt\' . text-mode) (\.[tT]e[xX]\' . tex-mode) (\.ins\' . tex-mode) (\.ltx\' . latex-mode) (\.dtx\' . doctex-mode) (\.org\' . org-mode) (\.el\' . emacs-lisp-mode) (Project\.ede\' . emacs-lisp-mode) (\.\(scm\|stk\|ss\|sch\)\' . scheme-mode) (\.l\' . lisp-mode) (\.li?sp\' . lisp-mode) (\.[fF]\' . fortran-mode) (\.for\' . fortran-mode) (\.p\' . pascal-mode) (\.pas\' . pascal-mode) (\.\(dpr\|DPR\)\' . delphi-mode) (\.ad[abs]\' . ada-mode) (\.ad[bs]\.dg\' . ada-mode) (\.\([pP]\([Llm]\|erl\|od\)\|al\)\' . perl-mode) (Imakefile\' . makefile-imake-mode) (Makeppfile\(?:\.mk\)?\' . makefile-makepp-mode) (\.makepp\' . makefile-makepp-mode) (\.mk\' . makefile-gmake-mode) (\.make\' . makefile-gmake-mode) ([Mm]akefile\' . makefile-gmake-mode) (\.am\' . makefile-automake-mode) (\.texinfo\' . texinfo-mode) (\.te?xi\' . texinfo-mode) (\.[sS]\' . asm-mode) (\.asm\' . asm-mode) (\.css\' . css-mode) (\.mixal\' . mixal-mode) (\.gcov\' . compilation-mode) (/\.[a-z0-9-]*gdbinit . gdb-script-mode) (-gdb\.gdb . gdb-script-mode) ([cC]hange\.?[lL]og?\' . change-log-mode) ([cC]hange[lL]og[-.][0-9]+\' . change-log-mode) (\$CHANGE_LOG\$\.TXT . change-log-mode) (\.scm\.[0-9]*\' . scheme-mode) (\.[ckz]?sh\'\|\.shar\'\|/\.z?profile\' . sh-mode) (\.bash\' . sh-mode) (\(/\|\`\)\.\(bash_\(profile\|history\|log\(in\|out\)\)\|z?log\(in\|out\)\)\' . sh-mode) (\(/\|\`\)\.\(shrc\|zshrc\|m?kshrc\|bashrc\|t?cshrc\|esrc\)\' . sh-mode) (\(/\|\`\)\.\([kz]shenv\|xinitrc\|startxrc\|xsession\)\' . sh-mode) (\.m?spec\' . sh-mode) (\.m[mes]\' . nroff-mode) (\.man\' . nroff-mode) (\.sty\' . latex-mode) (\.cl[so]\' . latex-mode) (\.bbl\' . latex-mode) (\.bib\' . bibtex-mode) (\.bst\' . bibtex-style-mode) (\.sql\' . sql-mode) (\(acinclude\|aclocal\|acsite\)\.m4\' . autoconf-mode) (\.m[4c]\' . m4-mode) (\.mf\' . metafont-mode) (\.mp\' . metapost-mode) (\.vhdl?\' . vhdl-mode) (\.article\' . text-mode) (\.letter\' . text-mode) (\.i?tcl\' . tcl-mode) (\.exp\' . tcl-mode) (\.itk\' . tcl-mode) (\.icn\' . icon-mode) (\.sim\' . simula-mode) (\.mss\' . scribe-mode) (\.f9[05]\' . f90-mode) (\.f0[38]\' . f90-mode) (\.indent\.pro\' . fundamental-mode) (\.\(pro\|PRO\)\' . idlwave-mode) (\.srt\' . srecode-template-mode) (\.prolog\' . prolog-mode) (\.tar\' . tar-mode) (\.\(arc\|zip\|lzh\|lha\|zoo\|[jew]ar\|xpi\|rar\|cbr\|7z\|ARC\|ZIP\|LZH\|LHA\|ZOO\|[JEW]AR\|XPI\|RAR\|CBR\|7Z\)\' . archive-mode) (\.oxt\' . archive-mode) (\.\(deb\|[oi]pk\)\' . archive-mode) (\`/tmp/Re . text-mode) (/Message[0-9]*\' . text-mode) (\`/tmp/fol/ . text-mode) (\.oak\' . scheme-mode) (\.sgml?\' . sgml-mode) (\.x[ms]l\' . xml-mode) (\.dbk\' . xml-mode) (\.dtd\' . sgml-mode) (\.ds\(ss\)?l\' . dsssl-mode) (\.js[mx]?\' . javascript-mode) (\.har\' . javascript-mode) (\.json\' . javascript-mode) (\.[ds]?va?h?\' . verilog-mode) (\.by\' . bovine-grammar-mode) (\.wy\' . wisent-grammar-mode) ([:/\]\..*\(emacs\|gnus\|viper\)\' . emacs-lisp-mode) (\`\..*emacs\' . emacs-lisp-mode) ([:/]_emacs\' . emacs-lisp-mode) (/crontab\.X*[0-9]+\' . shell-script-mode) (\.ml\' . lisp-mode) (\.ld[si]?\' . ld-script-mode) (ld\.?script\' . ld-script-mode) (\.xs\' . c-mode) (\.x[abdsru]?[cnw]?\' . ld-script-mode) (\.zone\' . dns-mode) (\.soa\' . dns-mode) (\.asd\' . lisp-mode) (\.\(asn\|mib\|smi\)\' . snmp-mode) (\.\(as\|mi\|sm\)2\' . snmpv2-mode) (\.\(diffs?\|patch\|rej\)\' . diff-mode) (\.\(dif\|pat\)\' . diff-mode) (\.[eE]?[pP][sS]\' . ps-mode) (\.\(?:PDF\|DVI\|OD[FGPST]\|DOCX\|XLSX?\|PPTX?\|pdf\|djvu\|dvi\|od[fgpst]\|docx\|xlsx?\|pptx?\)\' . doc-view-mode-maybe) (configure\.\(ac\|in\)\' . autoconf-mode) (\.s\(v\|iv\|ieve\)\' . sieve-mode) (BROWSE\' . ebrowse-tree-mode) (\.ebrowse\' . ebrowse-tree-mode) (#\*mail\* . mail-mode) (\.g\' . antlr-mode) (\.mod\' . m2-mode) (\.ses\' . ses-mode) (\.docbook\' . sgml-mode) (\.com\' . dcl-mode) (/config\.\(?:bat\|log\)\' . fundamental-mode) (/\.\(authinfo\|netrc\)\' . authinfo-mode) (\.\(?:[iI][nN][iI]\|[lL][sS][tT]\|[rR][eE][gG]\|[sS][yY][sS]\)\' . conf-mode) (\.la\' . conf-unix-mode) (\.ppd\' . conf-ppd-mode) (java.+\.conf\' . conf-javaprop-mode) (\.properties\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-javaprop-mode) (\.toml\' . conf-toml-mode) (\.desktop\' . conf-desktop-mode) (/\.redshift\.conf\' . conf-windows-mode) (\`/etc/\(?:DIR_COLORS\|ethers\|.?fstab\|.*hosts\|lesskey\|login\.?de\(?:fs\|vperm\)\|magic\|mtab\|pam\.d/.*\|permissions\(?:\.d/.+\)?\|protocols\|rpc\|services\)\' . conf-space-mode) (\`/etc/\(?:acpid?/.+\|aliases\(?:\.d/.+\)?\|default/.+\|group-?\|hosts\..+\|inittab\|ksysguarddrc\|opera6rc\|passwd-?\|shadow-?\|sysconfig/.+\)\' . conf-mode) ([cC]hange[lL]og[-.][-0-9a-z]+\' . change-log-mode) (/\.?\(?:gitconfig\|gnokiirc\|hgrc\|kde.*rc\|mime\.types\|wgetrc\)\' . conf-mode) (/\.\(?:asound\|enigma\|fetchmail\|gltron\|gtk\|hxplayer\|mairix\|mbsync\|msmtp\|net\|neverball\|nvidia-settings-\|offlineimap\|qt/.+\|realplayer\|reportbug\|rtorrent\.\|screen\|scummvm\|sversion\|sylpheed/.+\|xmp\)rc\' . conf-mode) (/\.\(?:gdbtkinit\|grip\|mpdconf\|notmuch-config\|orbital/.+txt\|rhosts\|tuxracer/options\)\' . conf-mode) (/\.?X\(?:default\|resource\|re\)s\> . conf-xdefaults-mode) (/X11.+app-defaults/\|\.ad\' . conf-xdefaults-mode) (/X11.+locale/.+/Compose\' . conf-colon-mode) (/X11.+locale/compose\.dir\' . conf-javaprop-mode) (\.~?[0-9]+\.[0-9][-.0-9]*~?\' nil t) (\.\(?:orig\|in\|[bB][aA][kK]\)\' nil t) ([/.]c\(?:on\)?f\(?:i?g\)?\(?:\.[a-zA-Z0-9._-]+\)?\' . conf-mode-maybe) (\.[1-9]\' . nroff-mode) (\.art\' . image-mode) (\.avs\' . image-mode) (\.bmp\' . image-mode) (\.cmyk\' . image-mode) (\.cmyka\' . image-mode) (\.crw\' . image-mode) (\.dcr\' . image-mode) (\.dcx\' . image-mode) (\.dng\' . image-mode) (\.dpx\' . image-mode) (\.fax\' . image-mode) (\.hrz\' . image-mode) (\.icb\' . image-mode) (\.icc\' . image-mode) (\.icm\' . image-mode) (\.ico\' . image-mode) (\.icon\' . image-mode) (\.jbg\' . image-mode) (\.jbig\' . image-mode) (\.jng\' . image-mode) (\.jnx\' . image-mode) (\.miff\' . image-mode) (\.mng\' . image-mode) (\.mvg\' . image-mode) (\.otb\' . image-mode) (\.p7\' . image-mode) (\.pcx\' . image-mode) (\.pdb\' . image-mode) (\.pfa\' . image-mode) (\.pfb\' . image-mode) (\.picon\' . image-mode) (\.pict\' . image-mode) (\.rgb\' . image-mode) (\.rgba\' . image-mode) (\.tga\' . image-mode) (\.wbmp\' . image-mode) (\.webp\' . image-mode) (\.wmf\' . image-mode) (\.wpg\' . image-mode) (\.xcf\' . image-mode) (\.xmp\' . image-mode) (\.xwd\' . image-mode) (\.yuv\' . image-mode) (\.tgz\' . tar-mode) (\.tbz2?\' . tar-mode) (\.txz\' . tar-mode) (\.tzst\' . tar-mode) (\.drv\' . latex-mode))
+
+* Yasnippet
+  #+BEGIN_SRC emacs-lisp
+    (message "in yasnippet section")
+    (use-package yasnippet
+      :ensure t
+      :init
+        (yas-global-mode 1))
+
+    (use-package yasnippet-snippets
+      :ensure t)
+  #+END_SRC
+
+  #+RESULTS:
+
+* Undo Tree
+  #+BEGIN_SRC emacs-lisp :tangle no
+    (message "in undo tree section")
+    (use-package undo-tree
+      :ensure t
+      :init
+      (global-undo-tree-mode))
+  #+END_SRC
+
+  #+RESULTS:
+
+* Misc packages
+  #+BEGIN_SRC emacs-lisp
+    (message "misc packages section")    
+
+    ; Highlights the current cursor line
+    (global-hl-line-mode t)
+
+    ; flashes the cursor's line when you scroll
+    (use-package beacon
+    :ensure t
+    :config
+    (beacon-mode 1)
+    ; (setq beacon-color "#666600")
+    )
+
+    ; deletes all the whitespace when you hit backspace or delete
+    (use-package hungry-delete
+    :ensure t
+    :config
+    (global-hungry-delete-mode))
+
+
+    (use-package multiple-cursors
+    :ensure t)
+
+    ; expand the marked region in semantic increments (negative prefix to reduce region)
+    (use-package expand-region
+    :ensure t
+    :config 
+    (global-set-key (kbd "C-=") 'er/expand-region))
+
+    (setq save-interprogram-paste-before-kill t)
+
+
+    (use-package aggressive-indent
+      ;; The variable aggressive-indent-dont-indent-if lets you customize when you don't want indentation to happen. 
+      ;; For instance, if you think it's annoying that lines jump around in c++-mode because you haven't typed the ; yet, 
+      ;; you could add the following clause:
+
+      ;; (add-to-list 'aggressive-indent-dont-indent-if '(and
+      ;;  (derived-mode-p 'c++-mode) (null (string-match
+      ;;  "\\([;{}]\\|\\b\\(if\\|for\\|while\\)\\b\\)" (thing-at-point
+      ;;  'line)))))  ;
+      :ensure t 
+      :config
+      (global-aggressive-indent-mode 1) 
+      ;; (add-to-list 'aggressive-indent-excluded-modes 'html-mode) 
+      )
+
+    (add-to-list 'auto-mode-alist '("\\.epub\\'" . nov-mode))
+
+    (defun z/swap-windows () "" 
+       (interactive) (ace-swap-window)
+                     (aw-flip-window) )
+
+    (setq browse-url-browser-function 'browse-url-generic 
+          browse-url-generic-program "/Program Files/Mozilla Firefox/firefox.exe")
+
+    (setq auto-window-vscroll nil)
+
+    (global-auto-revert-mode 1) ;; you might not want this
+    (setq auto-revert-verbose nil) ;; or this
+    (global-set-key (kbd "<f5>") 'revert-buffer)
+    (global-set-key (kbd "<f6>") 'revert-buffer)
+  #+END_SRC
+
+  #+RESULTS:
+  : revert-buffer
+
+* DIRED
+#+BEGIN_SRC emacs-lisp
+(message "in dired section")
+; dired+ is not in elpa, melpa or gnu elpa; it lives in ~/.emacs.d/packages
+(use-package dired+
+  :load-path "~/.emacs.d/packages/dired+/")
+(require 'dired+)
+
+(setq dired-dwim-target t)
+
+(use-package dired-narrow
+:ensure t
+:config
+(bind-key "C-c C-n" #'dired-narrow)
+(bind-key "C-c C-f" #'dired-narrow-fuzzy)
+(bind-key "C-x C-N" #'dired-narrow-regexp)
+)
+
+(use-package dired-subtree :ensure t
+  :after dired
+  :config
+  (bind-key "<tab>" #'dired-subtree-toggle dired-mode-map)
+  (bind-key "<backtab>" #'dired-subtree-cycle dired-mode-map))
+
+
+#+END_SRC
+
+#+RESULTS:
+: t
+
+* Hydra
+#+BEGIN_SRC emacs-lisp
+(message "in hydra section")
+  (use-package hydra 
+    :ensure hydra
+    :init 
+    (global-set-key
+    (kbd "C-x t")
+	    (defhydra toggle (:color blue)
+	      "toggle"
+	      ("a" abbrev-mode "abbrev")
+	      ("s" flyspell-mode "flyspell")
+	      ("d" toggle-debug-on-error "debug")
+	      ("c" fci-mode "fCi")
+	      ("f" auto-fill-mode "fill")
+	      ("t" toggle-truncate-lines "truncate")
+	      ("w" whitespace-mode "whitespace")
+	      ("q" nil "cancel")))
+    (global-set-key
+     (kbd "C-x j")
+     (defhydra gotoline 
+       ( :pre (linum-mode 1)
+	      :post (linum-mode -1))
+       "goto"
+       ("t" (lambda () (interactive)(move-to-window-line-top-bottom 0)) "top")
+       ("b" (lambda () (interactive)(move-to-window-line-top-bottom -1)) "bottom")
+       ("m" (lambda () (interactive)(move-to-window-line-top-bottom)) "middle")
+       ("e" (lambda () (interactive)(end-of-buffer)) "end")
+       ("c" recenter-top-bottom "recenter")
+       ("n" next-line "down")
+       ("p" (lambda () (interactive) (forward-line -1))  "up")
+       ("g" goto-line "goto-line")
+       ))
+    (global-set-key
+     (kbd "C-c t")
+     (defhydra hydra-global-org (:color blue)
+       "Org"
+       ("t" org-timer-start "Start Timer")
+       ("s" org-timer-stop "Stop Timer")
+       ("r" org-timer-set-timer "Set Timer") ; This one requires you be in an orgmode doc, as it sets the timer for the header
+       ("p" org-timer "Print Timer") ; output timer value to buffer
+       ("w" (org-clock-in '(4)) "Clock-In") ; used with (org-clock-persistence-insinuate) (setq org-clock-persist t)
+       ("o" org-clock-out "Clock-Out") ; you might also want (setq org-log-note-clock-out t)
+       ("j" org-clock-goto "Clock Goto") ; global visit the clocked task
+       ("c" org-capture "Capture") ; Don't forget to define the captures you want http://orgmode.org/manual/Capture.html
+	     ("l" (or )rg-capture-goto-last-stored "Last Capture"))
+
+     ))
+
+(defhydra hydra-multiple-cursors (:hint nil)
+  "
+ Up^^             Down^^           Miscellaneous           % 2(mc/num-cursors) cursor%s(if (> (mc/num-cursors) 1) \"s\" \"\")
+------------------------------------------------------------------
+ [_p_]   Next     [_n_]   Next     [_l_] Edit lines  [_0_] Insert numbers
+ [_P_]   Skip     [_N_]   Skip     [_a_] Mark all    [_A_] Insert letters
+ [_M-p_] Unmark   [_M-n_] Unmark   [_s_] Search
+ [Click] Cursor at point       [_q_] Quit"
+  ("l" mc/edit-lines :exit t)
+  ("a" mc/mark-all-like-this :exit t)
+  ("n" mc/mark-next-like-this)
+  ("N" mc/skip-to-next-like-this)
+  ("M-n" mc/unmark-next-like-this)
+  ("p" mc/mark-previous-like-this)
+  ("P" mc/skip-to-previous-like-this)
+  ("M-p" mc/unmark-previous-like-this)
+  ("s" mc/mark-all-in-region-regexp :exit t)
+  ("0" mc/insert-numbers :exit t)
+  ("A" mc/insert-letters :exit t)
+  ("<mouse-1>" mc/add-cursor-on-click)
+  ;; Help with click recognition in this hydra
+  ("<down-mouse-1>" ignore)
+  ("<drag-mouse-1>" ignore)
+  ("q" nil)
+
+
+  ("<mouse-1>" mc/add-cursor-on-click)
+  ("<down-mouse-1>" ignore)
+  ("<drag-mouse-1>" ignore))
+
+#+END_SRC
+
+#+RESULTS:
+: hydra-multiple-cursors/body
+
+* git
+#+BEGIN_SRC emacs-lisp
+(message "in git section")  
+(use-package magit
+    :ensure t
+    :init
+    (progn
+    (bind-key "C-x g" 'magit-status)
+    ))
+
+(setq magit-status-margin
+  '(t "%Y-%m-%d %H:%M " magit-log-margin-width t 18))
+    (use-package git-gutter
+    :ensure t
+    :init
+    (global-git-gutter-mode +1))
+
+    (global-set-key (kbd "M-g M-g") 'hydra-git-gutter/body)
+
+
+    (use-package git-timemachine
+    :ensure t
+    )
+  (defhydra hydra-git-gutter (:body-pre (git-gutter-mode 1)
+                              :hint nil)
+    "
+  Git gutter:
+    _j_: next hunk        _s_tage hunk     _q_uit
+    _k_: previous hunk    _r_evert hunk    _Q_uit and deactivate git-gutter
+    ^ ^                   _p_opup hunk
+    _h_: first hunk
+    _l_: last hunk        set start _R_evision
+  "
+    ("j" git-gutter:next-hunk)
+    ("k" git-gutter:previous-hunk)
+    ("h" (progn (goto-char (point-min))
+                (git-gutter:next-hunk 1)))
+    ("l" (progn (goto-char (point-min))
+                (git-gutter:previous-hunk 1)))
+    ("s" git-gutter:stage-hunk)
+    ("r" git-gutter:revert-hunk)
+    ("p" git-gutter:popup-hunk)
+    ("R" git-gutter:set-start-revision)
+    ("q" nil :color blue)
+    ("Q" (progn (git-gutter-mode -1)
+                ;; git-gutter-fringe doesn't seem to
+                ;; clear the markup right away
+                (sit-for 0.1)
+                (git-gutter:clear))
+         :color blue))
+
+#+END_SRC
+
+#+RESULTS:
+: hydra-git-gutter/body
+
+* Load other files
+   #+BEGIN_SRC emacs-lisp
+      (message "in load other files section") 
+      (defun load-if-exists (f)
+       "load the elisp file only if it exists and is readable"
+       (if (file-readable-p f)
+           (load-file f)))
+
+     (load-if-exists "~/Sync/shared/mu4econfig.el")
+     (load-if-exists "~/Sync/shared/not-for-github.el")
+
+   #+END_SRC
+
+   #+RESULTS:
+* Better Shell
+#+BEGIN_SRC emacs-lisp :tangle no
+  (message "in better shell section")
+   (use-package better-shell
+      :ensure t
+      :bind (("C-\"" . better-shell-shell)
+             ("C-:" . better-shell-remote-open)))
+#+END_SRC
+
+#+RESULTS:
+: better-shell-remote-open
+
+* Elfeed
+#+BEGIN_SRC emacs-lisp :tangle no
+    (message "in elfeed section") 
+    (setq elfeed-db-directory "~/Sync/shared/elfeeddb")
+
+
+    (defun elfeed-mark-all-as-read ()
+	  (interactive)
+	  (mark-whole-buffer)
+	  (elfeed-search-untag-all-unread))
+
+
+    ;;functions to support syncing .elfeed between machines
+    ;;makes sure elfeed reads index from disk before launching
+    (defun bjm/elfeed-load-db-and-open ()
+      "Wrapper to load the elfeed db from disk before opening"
+      (interactive)
+      (elfeed-db-load)
+      (elfeed)
+      (elfeed-search-update--force))
+
+    ;;write to disk when quitting
+    (defun bjm/elfeed-save-db-and-bury ()
+      "Wrapper to save the elfeed db to disk before burying buffer"
+      (interactive)
+      (elfeed-db-save)
+      (quit-window))
+
+    (use-package elfeed
+      :ensure t
+      :bind (:map elfeed-search-mode-map
+		  ("q" . bjm/elfeed-save-db-and-bury)
+		  ("Q" . bjm/elfeed-save-db-and-bury)
+		  ("m" . elfeed-toggle-star)
+		  ("M" . elfeed-toggle-star)
+		  ("j" . bjm/make-and-run-elfeed-hydra)
+		  ("J" . bjm/make-and-run-elfeed-hydra)
+		  )
+     :config
+    (defalias 'elfeed-toggle-star
+      (elfeed-expose #'elfeed-search-toggle-all 'star))
+      )
+
+    (use-package elfeed-goodies
+      :ensure t
+      :config
+      (elfeed-goodies/setup))
+
+    (use-package elfeed-org
+      :ensure t
+      :config
+      (elfeed-org)
+      (setq rmh-elfeed-org-files (list "~/Sync/shared/elfeed.org")))
+
+  (defun jm/hasCap (s) ""
+	 (let ((case-fold-search nil))
+  	 (string-match-p "[[:upper:]]" s)
+	 ))
+
+  (defun jm/get-hydra-option-key (s)
+    "returns single upper case letter (converted to lower) or first"
+    (interactive)
+    (let ( (loc (jm/hasCap s)))
+      (if loc
+	      (downcase (substring s loc (+ loc 1)))  
+    (substring s 0 1)
+      )))
+
+  ;;  (active blogs cs education emacs local misc sports star tech unread webcomics)
+  (defun jm/make-elfeed-cats (tags)
+    "Returns a list of lists. Each one is line for the hydra configuratio in the form
+       (c function hint)"
+    (interactive)
+    (mapcar (lambda (tag)
+	      (let* (
+		     (tagstring (symbol-name tag))
+		     (c (jm/get-hydra-option-key tagstring))
+		     )
+		(list c (append '(elfeed-search-set-filter) (list (format "@6-months-ago +%s" tagstring) ))tagstring  )))
+	    tags))
+
+  (defmacro jm/make-elfeed-hydra ()
+    `(defhydra jm/hydra-elfeed ()
+       "filter"
+       ,@(jm/make-elfeed-cats (elfeed-db-get-all-tags))
+       ("*" (elfeed-search-set-filter "@6-months-ago +star") "Starred")
+       ("M" elfeed-toggle-star "Mark")
+       ("A" (elfeed-search-set-filter "@6-months-ago") "All")
+       ("T" (elfeed-search-set-filter "@1-day-ago") "Today")
+       ("Q" bjm/elfeed-save-db-and-bury "Quit Elfeed" :color blue)
+       ("q" nil "quit" :color blue)
+       ))
+
+(defun jm/make-and-run-elfeed-hydra ()
+      ""
+      (interactive)
+      (jm/make-elfeed-hydra)
+      (jmxs/hydra-elfeed/body))
+
+#+END_SRC
+
+#+RESULTS:
+: jm/make-and-run-elfeed-hydra
+
+* IBUFFER
+#+BEGIN_SRC emacs-lisp
+  (message "in ibuffer section")
+  (global-set-key (kbd "C-x C-b") 'ibuffer)
+  (setq ibuffer-saved-filter-groups
+        (quote (("default"
+                 ("dired" (mode . dired-mode))
+                 ("org" (name . "^.*org$"))
+                 ("magit" (mode . magit-mode))
+                 ("IRC" (or (mode . circe-channel-mode) (mode . circe-server-mode)))
+                 ("web" (or (mode . web-mode) (mode . js2-mode)))
+                 ("shell" (or (mode . eshell-mode) (mode . shell-mode)))
+                 ("mu4e" (or
+
+                          (mode . mu4e-compose-mode)
+                          (name . "\*mu4e\*")
+                          ))
+                 ("programming" (or
+                                 (mode . clojure-mode)
+                                 (mode . clojurescript-mode)
+                                 (mode . python-mode)
+                                 (mode . c++-mode)))
+                 ("emacs" (or
+                           (name . "^\\*scratch\\*$")
+                           (name . "^\\*Messages\\*$")))
+                 ))))
+  (add-hook 'ibuffer-mode-hook
+            (lambda ()
+              (ibuffer-auto-mode 1)
+              (ibuffer-switch-to-saved-filter-groups "default")))
+
+  ;; don't show these
+                                          ;(add-to-list 'ibuffer-never-show-predicates "zowie")
+  ;; Don't show filter groups if there are no buffers in that group
+  (setq ibuffer-show-empty-filter-groups nil)
+
+  ;; Don't ask for confirmation to delete marked buffers
+  (setq ibuffer-expert t)
+
+#+END_SRC
+
+#+RESULTS:
+: t
+
+* Treemacs
+#+BEGIN_SRC emacs-lisp
+  (message "in treemacs section") 
+  (use-package treemacs
+    :ensure t
+    :defer t
+    :config
+    (progn
+
+      (setq treemacs-follow-after-init          t
+            treemacs-width                      35
+            treemacs-indentation                2
+            treemacs-git-integration            t
+            treemacs-collapse-dirs              3
+            treemacs-silent-refresh             nil
+            treemacs-change-root-without-asking nil
+            treemacs-sorting                    'alphabetic-desc
+            treemacs-show-hidden-files          t
+            treemacs-never-persist              nil
+            treemacs-is-never-other-window      nil
+            treemacs-goto-tag-strategy          'refetch-index)
+
+      (treemacs-follow-mode t)
+      (treemacs-filewatch-mode t))
+    :bind
+    (:map global-map
+          ([f8]        . treemacs-toggle)
+          ([f9]        . treemacs-projectile-toggle)
+          ("<C-M-tab>" . treemacs-toggle)
+          ("M-0"       . treemacs-select-window)
+          ("C-c 1"     . treemacs-delete-other-windows)
+        ))
+  (use-package treemacs-projectile
+    :defer t
+    :ensure t
+    :config
+    (setq treemacs-header-function #'treemacs-projectile-create-header)
+)
+
+#+END_SRC
+
+#+RESULTS:
+* personal keymap
+#+BEGIN_SRC emacs-lisp
+(message "in personal keymap section")
+;; unset C- and M- digit keys
+;(dotimes (n 10)
+;  (global-unset-key (kbd (format "C-%d" n)))
+;  (global-unset-key (kbd (format "M-%d" n)))
+;  )
+
+(defun org-agenda-show-agenda-and-todo (&optional arg)
+  (interactive "P")
+  (org-agenda arg "c")
+  (org-agenda-fortnight-view))
+
+(defun z/load-iorg ()
+(interactive )
+(find-file "~/Sync/orgfiles/i.org"))
+
+;; set up my own map
+(define-prefix-command 'z-map)
+(global-set-key (kbd "C-z") 'z-map) ;; was C-1
+(define-key z-map (kbd "k") 'compile)
+(define-key z-map (kbd "c") 'hydra-multiple-cursors/body)
+(define-key z-map (kbd "m") 'mu4e)
+(define-key z-map (kbd "1") 'org-global-cycle)
+(define-key z-map (kbd "a") 'org-agenda-show-agenda-and-todo)
+(define-key z-map (kbd "g") 'counsel-ag)
+(define-key z-map (kbd "2") 'make-frame-command)
+(define-key z-map (kbd "0") 'delete-frame)
+(define-key z-map (kbd "o") 'ace-window)
+(define-key z-map (kbd "s") 'flyspell-correct-word-before-point)
+(define-key z-map (kbd "i") 'z/load-iorg)
+(define-key z-map (kbd "f") 'origami-toggle-node)
+(define-key z-map (kbd "w") 'z/swap-windows)
+(define-key z-map (kbd "*") 'calc)
+
+(setq user-full-name "Joe McGrew"
+     user-mail-address "joem0531@gmail.com")
+;;--------------------------------------------------------------------------
+
+
+(global-set-key (kbd "\e\ei")
+                (lambda () (interactive) (find-file "~/Sync/orgfiles/i.org")))
+
+(global-set-key (kbd "\e\el")
+                (lambda () (interactive) (find-file "~/Sync/orgfiles/links.org")))
+
+(global-set-key (kbd "\e\ec")
+                (lambda () (interactive) (find-file "~/.emacs.d/myinit.org")))
+
+(global-set-key (kbd "<end>") 'move-end-of-line)
+
+(global-set-key [mouse-3] 'flyspell-correct-word-before-point)
+
+#+END_SRC
+
+#+RESULTS:
+: flyspell-correct-word-before-point
+
+#  LocalWords:  DIRED Javascript Screencasts Autocomplete
+* Wgrep
+#+BEGIN_SRC emacs-lisp
+(message "in wgrep section")
+(use-package wgrep
+:ensure t
+)
+(use-package wgrep-ag
+:ensure t
+)
+(require 'wgrep-ag)
+#+END_SRC
+
+#+RESULTS:
+: wgrep-ag
+* Regex
+#+BEGIN_SRC emacs-lisp
+(message "in regex section")
+(use-package pcre2el
+:ensure t
+:config 
+(pcre-mode)
+)
+#+END_SRC
+
+#+RESULTS:
+: t
+
+* PDF tools
+#+BEGIN_SRC emacs-lisp
+(message "in pdf tools section")
+(use-package pdf-tools
+:ensure t)
+(use-package org-pdfview
+:ensure t)
+
+(require 'pdf-tools)
+(require 'org-pdfview)
+
+#+END_SRC
+
+#+RESULTS:
+: org-pdfview
+
+* auto-yasnippet
+#+BEGIN_SRC emacs-lisp
+(message "in auto-yasnippet section")
+(use-package auto-yasnippet
+:ensure t)
+#+END_SRC
+
+#+RESULTS:
+
+* PATH: Import path variables from SHELL on Linux or OsX
+#+BEGIN_SRC emacs-lisp
+(message "in path")
+;; only execute on non-windows platforms
+(when (memq window-system '(mac ns x))
+  (use-package exec-path-from-shell
+    :ensure t
+    :config
+    (exec-path-from-shell-initialize)
+    ))
+
+#+END_SRC
+
+#+RESULTS:
+
+* Ripgrep
+#+BEGIN_SRC emacs-lisp
+(message "in ripgrep section")
+(use-package deadgrep 
+:ensure t)
+
+(use-package rg
+:ensure t
+:commands rg)
+
+#+END_SRC
+
+#+RESULTS:
+
+* Beancount/Ledger Config
+#+BEGIN_SRC emacs-lisp
+;; -*- mode: emacs-lisp -*-
+;;
+;; Emacs setup for Ledger.
+;;
+
+;; Add local emacs-lisp extension to load-path and load it.
+;; (add-to-list 'load-path (concat project-current "/editors/emacs"))
+;; dired+ is not in elpa, melpa or gnu elpa; it lives in ~/.emacs.d/packages
+(message "In Section Beancount/Ledger Config")
+(use-package beancount
+  :load-path "~/.emacs.d/packages/beancount/")
+
+(require 'beancount)
+
+;; Automatically open .beancount files in beancount-mode.
+(add-to-list 'auto-mode-alist '("\\.beancount$" . beancount-mode))
+
+
+;; Support parsing Python logging errors, with a suitable logging.basicConfig()
+;; format.
+(unless (assq 'python-logging compilation-error-regexp-alist-alist)
+
+  (add-to-list
+   'compilation-error-regexp-alist-alist
+   '(python-logging "\\(ERROR\\|WARNING\\):\\s-*\\([^:]+\\):\\([0-9]+\\)\\s-*:" 2 3))
+
+  (add-to-list
+   'compilation-error-regexp-alist 'python-logging)
+  )
+
+;; Experimental: Bind a key to reformat the entire file using bean-format.
+(defun beancount-format-file ()
+  (interactive)
+  (let ((line-no (line-number-at-pos)))
+      (call-process-region (point-min) (point-max) "bean-format" t (current-buffer))
+      (goto-line line-no)
+      (recenter)
+      ))
+
+(define-key beancount-mode-map [(control c)(F)] 'beancount-format-file)
+
+;; Make sure we don't accidentally pick up ;;; as headers. Use org section headers only.
+(setq beancount-outline-regexp "\\(\\*+\\)")
+
+;; Automatically enable outline-mode.
+(add-hook 'beancount-mode-hook #'outline-minor-mode)
+
+;; Add movement between sections.
+(define-key beancount-mode-map [(control c)(control n)] #'outline-next-visible-heading)
+(define-key beancount-mode-map [(control c)(control p)] #'outline-previous-visible-heading)
+(define-key beancount-mode-map [(control c)(control u)] #'outline-up-heading)
+
+;; Disable auto-indent.
+
+(defun disable-electric-indent ()
+  (setq-local electric-indent-chars nil))
+(add-hook 'beancount-mode-hook #'disable-electric-indent)
+
+;; `beancount-number-alignment-column`. Setting it to 0 will cause the
+;; alignment column to be determined from file content.  Postings in
+;; transactions are indented with `beancount-transaction-indent` spaces.
+
+#+END_SRC
+
+#+RESULTS:
+| disable-electric-indent | outline-minor-mode |
+
+* Weather Forecast (Darksky.Net)
+#+BEGIN_SRC emacs-lisp
+(message "in weather forecast section")
+(use-package forecast
+  :config
+  (setq calendar-location-name "Glen Mills, PA"
+        calendar-latitude 39.919167
+        calendar-longitude -75.491667
+        forecast-api-key "c1be523b6c4135f933f2630cadd7ca0c"
+        )
+  )
+#+END_SRC
+
+#+RESULTS:
+: t
